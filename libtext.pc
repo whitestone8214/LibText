@@ -1,0 +1,5 @@
+Name: LibText
+Description: A collection of text-related functions.
+Version: 0.1
+Requires:
+Libs: -ltext -lm
