@@ -22,7 +22,51 @@
 #include <math.h>
 #include <string.h>
 
-#define VERSION_LIBTEXT "0.1"
+#define VERSION_LIBTEXT "0.2"
+
+typedef struct Text {char **content; int length;} Text;
+
+/*
+	Creates new 'Text' session.
+	
+	Return value: New 'Text' session. You must quit it using text_erase() after use, as it uses dynamic memory allocation.
+*/
+Text *text_new ();
+
+/*
+	Insert 'text' as 'where' of 'session'.
+	
+	session: Existing 'Text' session.
+	text: Text to insert
+	nth: Position where 'text' to be at in 'session'. If 'where' is -1, or equal or greater than length of 'session' 'text' will be at the last position in 'session'.
+	copy: Switch to decide whether to insert 'text' as it is or copied one via strdup(). If this set to 1, the function will copy 'text' via strdup() and inserts it. Otherwise the function will insert 'text' as it is.
+*/
+void text_insert (Text *session, const char *text, int nth, char copy);
+
+/*
+	Remove 'nth' text of 'session'.
+	
+	session: Existing 'Text' session.
+	nth: Position where to be removed from 'session'. If 'nth' is -1, or equal or greater than length of 'session' the last position in 'session' will be removed.
+*/
+void text_withdraw (Text *session, int nth);
+
+/*
+	Connects the texts in 'session'.
+	
+	session: Existing 'Text' session.
+	border: The text that will be inserted between texts, if not NULL.
+	
+	Return value: Connected text. You must free() it after use, as it uses dynamic memory allocation.
+*/
+char *text_connect (Text *session, char *border);
+
+/*
+	Clear the 'Text' session.
+	
+	session: 'Text' session to be cleared.
+*/
+void text_erase (Text *session);
 
 /*
 	Checks whether specific part of 'text' matches with 'piece'.
@@ -95,9 +139,12 @@ char *libtext_replace (const char *text, const char *from, const char *to);
 	text: Text
 	border: Basis for spliting text
 	
-	Return value: An array of splited texts. Last member is NULL. You must free() each members except last and then also array itself after use, as it uses dynamic memory allocation.
+	Return value:
+		Old (will be removed in future): An array of splited texts. Last member is NULL. You must free() each members except last and then also array itself after use, as it uses dynamic memory allocation.
+		V2: A 'Text' session which has an array of splited texts. You must quit it using text_erase() after use, as it uses dynamic memory allocation.
 */
 char **libtext_split (const char *text, const char *border);
+Text *libtext_split_V2 (const char *text, const char *border);
 
 /*
 	Converts given 'number' to text.

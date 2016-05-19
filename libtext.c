@@ -52,6 +52,60 @@ static char *Q_text_append (char *text, char *text2) {
 	return strdup (_result);
 }
 
+Text *text_new () {
+	Text *_session = (Text *) malloc (sizeof (Text)); if (_session == NULL) return NULL;
+	_session->content = NULL; _session->length = 0;
+}
+void text_insert (Text *session, const char *text, int nth, char copy) {
+	/* 1. Are given parameters sane? */
+	if (session == NULL) return;
+	int _nth = nth; if ((nth == -1) || (nth >= session->length)) _nth = session->length; if (nth < -1) _nth = 0;
+	
+	/* 2. Insert text into array. */
+	char **_content = (char **) malloc (sizeof (char *) * (session->length + 1));
+	int _spotContent; int _spotResult = 0; for (_spotContent = 0; _spotContent < session->length + 1; _spotContent++) {
+		_content[_spotResult] = _spotContent == _nth ? (text != NULL ? (copy == 1 ? strdup (text) : (char *) text) : NULL) : session->content[_spotContent];
+		_spotResult++;
+	}
+	free (session->content); session->content = _content; session->length++;
+}
+void text_withdraw (Text *session, int nth) {
+	/* 1. Are given parameters sane? */
+	if (session == NULL) return;
+	int _nth = nth; if ((nth == -1) || (nth >= session->length)) _nth = session->length; if (nth < -1) _nth = 0;
+	
+	/* 2. Withdraw text from array. */
+	char **_content = (char **) malloc (sizeof (char *) * (session->length - 1));
+	int _spotContent = 0; int _spotResult; for (_spotResult = 0; _spotResult < session->length; _spotResult++) {
+		if (_spotResult == nth) {if (session->content[_spotResult] != NULL) free (session->content[_spotResult]); continue;}
+		_content[_spotContent] = session->content[_spotResult];
+		_spotContent++;
+	}
+	free (session->content); session->content = _content; session->length--;
+}
+char *text_connect (Text *session, char *border) {
+	/* 1. Are given parameters sane? */
+	if (session == NULL) return NULL;
+	if (session->length < 1) return NULL;
+	
+	/* 2. Create text. */
+	int _nth = 0; char *_result = NULL; while (_nth < session->length) {
+		char *_result1 = Q_text_append (_result, session->content[_nth]); if (_result != NULL) free (_result); _result = _result1;
+		if ((_nth < session->length - 1) && (border != NULL)) {_result1 = Q_text_append (_result, border); if (_result != NULL) free (_result); _result = _result1;}
+	}
+	return _result;
+}
+void text_erase (Text *session) {
+	/* 1. Are given parameters sane? */
+	if (session == NULL) return;
+	
+	/* 2. Withdraw all texts from array. */
+	int _spotContent; for (_spotContent = 0; _spotContent < session->length; _spotContent++) {if (session->content[_spotContent] != NULL) free (session->content[_spotContent]);}
+	
+	/* 3. Erase session. */
+	free (session);
+}
+
 char libtext_matches (const char *text, int where, const char *piece, char backward) {
 	/* 1. Are given parameters sane? */
 	if ((text == NULL) || (piece == NULL) || (strlen (text) < strlen (piece)) || (where < 0) || (where >= strlen (text))) return 0;
@@ -86,16 +140,6 @@ char *libtext_connect (int amount, ...) {
 		char *_result1 = Q_text_append (_result, _parameter); if (_result != NULL) free (_result); _result = _result1;
 	}
 	return _result;
-	
-	/*va_list list; va_start (list, amount);
-	if (amount == 1) {char *result = strdup (va_arg (list, const char *)); va_end (list); return result;}
-	int nth; int spaces = 0; for (nth = 0; nth < amount; nth++) spaces += strlen (va_arg (list, char *)); va_end (list);
-	if (nth != amount) return NULL;
-	char *result = (char *) malloc (spaces + 1); if (result == NULL) return NULL;
-	va_start (list, amount); int nth2 = 0; for (nth = 0; nth < amount; nth++) {
-		char *from = va_arg (list, char *); int nth3; for (nth3 = 0; nth3 < strlen (from); nth3++) {result[nth2] = from[nth3]; nth2++;}
-	}
-	va_end (list); result[nth2] = '\0'; return result;*/
 }
 
 char *libtext_cut (const char *text, int from, int to, char take) {
@@ -182,6 +226,24 @@ char **libtext_split (const char *text, const char *border) {
 			char **_result1 = Q_text_array_append (_result, libtext_cut (text, _where[_nthFound] + strlen (border), strlen (text) - 1, 0)); free (_result); _result = _result1;
 		}}
 		_nthFound++;
+	}
+	free (_where); return _result;
+}
+Text *libtext_split_V2 (const char *text, const char *border) {
+	/* 1. Are given parameters sane? */
+	if ((text == NULL) || (border == NULL)) return NULL;
+	
+	/* 2. Find 'border'. */
+	int *_where = libtext_find (text, border); if (_where == NULL) return text_new ();
+	
+	/* 3. Create the array. */
+	Text *_result = text_new (); if (_result == NULL) {free (_where); return NULL;}
+	int _nthFound = 0; while (_nthFound >= 0) {
+		if (_where[_nthFound] == 0) {_nthFound++; continue;}
+		int _border = _where[_nthFound] == -1 ? strlen (text) : _where[_nthFound]; int _from = _nthFound == 0 ? 0 : _where[_nthFound - 1] + strlen (border);
+		if (_border == _from) {_nthFound++; continue;}
+		text_insert (_result, libtext_cut (text, _from, _border - 1, 0), -1, 0);
+		if (_where[_nthFound] == -1) break; _nthFound++;
 	}
 	free (_where); return _result;
 }
